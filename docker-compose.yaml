@@ -1,0 +1,95 @@
+# docker compose up -d redis mongodb mysql postgres rabbitmq elasticsearch kibana
+version: "3.9"
+services:
+  redis:
+    container_name: redis_container
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --loglevel warning
+    volumes:
+      - ./docker-volumes/cache:/data
+
+  mongodb:
+    container_name: mongodb_container
+    image: mongo:latest
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./docker-volumes/data:/data/db
+
+  mysql:
+    container_name: mysql_container
+    image: mysql
+    restart: always
+    environment:
+      - MYSQL_USER=admin
+      - MYSQL_DATABASE=auth
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_PASSWORD=admin
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker-volumes/mysql:/var/lib/mysql
+
+  postgres:
+    container_name: postgres_container
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=reviews
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker-volumes/postgres:/var/lib/postgresql
+
+  rabbitmq:
+    container_name: rabbitmq_container
+    image: rabbitmq:3.13-rc-management-alpine
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      # AMQP protocol port
+      - "5672:5672"
+      # Management UI
+      - "15672:15672"
+
+  es8:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: es8
+    environment:
+      - node.name=es8
+      - cluster.name=es-docker-cluster
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - 9200:9200
+      - 9300:9300
+    volumes:
+      - ./docker-volumes/esdata:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+
+  kib8:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    container_name: kib8
+    environment:
+      - node.name=kib8
+      - cluster.name=es-docker-cluster
+      - ELASTICSEARCH_HOSTS=http://es8:9200
+    ports:
+      - 5601:5601
+    networks:
+      - elastic
+    depends_on:
+      - es8
+
+networks:
+  elastic:
+    driver: bridge
