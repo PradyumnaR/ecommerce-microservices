@@ -59,6 +59,8 @@ services:
       - "5672:5672"
       # Management UI
       - "15672:15672"
+    networks:
+      - elastic
 
   es8:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
@@ -89,6 +91,30 @@ services:
       - elastic
     depends_on:
       - es8
+
+  notifications:
+    container_name: notification_container
+    build:
+      context: ./notification_service
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 4001:4001
+    environment:
+      - ENABLE_APM=0
+      - NODE_ENV=development
+      - CLIENT_URI=http://localhost:300
+      - RABBITMQ_ENDPOINT=amqp://admin:admin@rabbitmq:5672
+      - SENDER_EMAIL=jo99@ethereal.email
+      - SENDER_EMAIL_PASSWORD=C98NtkTREfHhNTTPVH
+      - ELASIC_SEARCH_URL=http://es8:9200
+      - ELASTIC_APM_SERVER_URL=http://localhost:8200
+      - ELASTIC_APM_SECRET_TOKEN=
+    depends_on:
+      - es8
+      - rabbitmq
+    networks:
+      - elastic
 
 networks:
   elastic:
